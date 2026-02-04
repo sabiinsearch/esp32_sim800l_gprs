@@ -64,6 +64,14 @@ esp_err_t sim800l_init(void)
     // Disable echo
     sim800l_send_at_cmd("ATE0", response, sizeof(response), 2000);
 
+    // Set full functionality
+    ESP_LOGI(TAG, "Setting full functionality...");
+    sim800l_send_at_cmd("AT+CFUN=1", response, sizeof(response), 3000);
+
+    // Force GSM (2G) mode - common requirement for SIM800L registration
+    ESP_LOGI(TAG, "Forcing GSM mode...");
+    sim800l_send_at_cmd("AT+CNMP=13", response, sizeof(response), 3000);
+
     is_initialized = true;
     ESP_LOGI(TAG, "SIM800L initialized successfully");
     return ESP_OK;

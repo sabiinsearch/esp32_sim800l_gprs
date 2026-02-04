@@ -1,0 +1,14 @@
+# Commands to push your repository to GitHub
+
+# Add the remote repository
+git remote add origin https://github.com/sabiinsearch/esp32_sim800l_gprs.git
+
+# Verify the remote was added
+git remote -v
+
+# Push your code to GitHub
+git push -u origin master
+
+# Alternative: If you're using 'main' as default branch
+# git branch -M main
+# git push -u origin main
