@@ -7,9 +7,9 @@
 
 // UART Configuration
 #define SIM800L_UART_NUM        UART_NUM_1
-#define SIM800L_TX_PIN          2  // GPIO2 (D2) - ESP32 TX to SIM800L RX (SWAPPED FOR TESTING)
-#define SIM800L_RX_PIN          4  // GPIO4 (D4) - ESP32 RX from SIM800L TX (SWAPPED FOR TESTING)
-#define SIM800L_BAUD_RATE       9600
+#define SIM800L_TX_PIN          4  // GPIO4 (D4) - ESP32 TX to SIM800L RX
+#define SIM800L_RX_PIN          2  // GPIO2 (D2) - ESP32 RX from SIM800L TX
+#define SIM800L_BAUD_RATE       115200
 #define SIM800L_BUF_SIZE        1024
 
 // Timeout values (milliseconds)
@@ -63,6 +63,14 @@ esp_err_t sim800l_setup_gprs(const char *apn);
  * @return ESP_OK on success, ESP_FAIL on error
  */
 esp_err_t sim800l_http_post(const char *url, const char *data, char *response, size_t response_size);
+
+/**
+ * @brief Initiate a voice call to a phone number
+ * 
+ * @param phone_number Destination phone number
+ * @return ESP_OK on success, ESP_FAIL on error
+ */
+esp_err_t sim800l_call_number(const char *phone_number);
 
 /**
  * @brief Send SMS message to a phone number

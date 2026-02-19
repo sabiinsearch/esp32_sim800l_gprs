@@ -16,6 +16,21 @@
 esp_err_t gprs_client_init(const char *apn);
 
 /**
+ * @brief Initiate a voice call to a phone number
+ * 
+ * @param phone_number Destination phone number
+ * @return ESP_OK on success, ESP_FAIL on error
+ */
+esp_err_t gprs_client_make_call(const char *phone_number);
+
+/**
+ * @brief Connect to GPRS network (Internet)
+ * 
+ * @return ESP_OK on success, ESP_FAIL on error
+ */
+esp_err_t gprs_client_connect_gprs(void);
+
+/**
  * @brief Send message to cloud server
  * 
  * @param message Message payload (will be sent as JSON)

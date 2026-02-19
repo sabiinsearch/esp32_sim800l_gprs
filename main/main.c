@@ -34,34 +34,43 @@ void app_main(void)
     //   - "bsnlnet" (BSNL India)
     //   - "portalnmms" (Vodafone)
     
+    // Initialize GPRS client (Basic Init & Network Register)
+    // NOTE: Change the APN to match your mobile carrier
     const char *apn = "airtelgprs.com";  // CHANGE THIS TO YOUR CARRIER'S APN
     
-    ESP_LOGI(TAG, "Initializing GPRS connection with APN: %s", apn);
+    ESP_LOGI(TAG, "Initializing SIM800L...");
     ret = gprs_client_init(apn);
     
     if (ret != ESP_OK) {
-        ESP_LOGE(TAG, "GPRS initialization failed!");
+        ESP_LOGE(TAG, "Initialization failed!");
         ESP_LOGE(TAG, "Please check:");
         ESP_LOGE(TAG, "  1. SIM card is inserted and active");
         ESP_LOGE(TAG, "  2. SIM800L has proper power supply (4V, 2A)");
         ESP_LOGE(TAG, "  3. UART connections (TX->GPIO4, RX->GPIO2)");
-        ESP_LOGE(TAG, "  4. APN is correct for your carrier");
         return;
     }
 
-    ESP_LOGI(TAG, "GPRS connected successfully!");
+    ESP_LOGI(TAG, "SIM800L initialized and registered on network!");
+
+    // ========================================
+    // CALL EXAMPLE - Make a voice call
+    // ========================================
+    const char *phone_number = "+919650560329";  // CHANGE THIS TO YOUR PHONE NUMBER
+    
+    ESP_LOGI(TAG, "Calling %s...", phone_number);
+    ret = gprs_client_make_call(phone_number);
+
+    if (ret == ESP_OK) {
+        ESP_LOGI(TAG, "Call initiated! Waiting 20 seconds before hanging up/sending SMS...");
+        vTaskDelay(pdMS_TO_TICKS(20000));
+    } else {
+        ESP_LOGW(TAG, "Failed to initiate call");
+    }
 
     // ========================================
     // SMS EXAMPLE - Send SMS to a phone number
     // ========================================
-    // IMPORTANT: Replace with your actual phone number in international format
-    // Example formats:
-    //   - "+919876543210" (India)
-    //   - "+12025551234" (USA)
-    //   - "+447700900123" (UK)
-    
-    const char *phone_number = "+9650560329";  // CHANGE THIS TO YOUR PHONE NUMBER
-    const char *sms_message = "Hello from ESP32! SIM800L is working.";
+    const char *sms_message = "Hello from ESP32! Call initiated successfully.";
     
     ESP_LOGI(TAG, "Sending SMS to %s...", phone_number);
     ret = gprs_client_send_sms(phone_number, sms_message);
@@ -72,9 +81,15 @@ void app_main(void)
         ESP_LOGW(TAG, "Failed to send SMS");
     }
 
+    ESP_LOGI(TAG, "Sequence completed. Entering idle mode.");
+    
+    /*
     // ========================================
-    // HTTP EXAMPLE - Send message to cloud server
+    // GPRS & HTTP EXAMPLE - Send message to cloud server
     // ========================================
+    ESP_LOGI(TAG, "Connecting to GPRS for cloud messaging...");
+    gprs_client_connect_gprs();
+
     ESP_LOGI(TAG, "Sending test message to cloud...");
     ret = gprs_client_send_message("Hello from ESP32! System initialized.");
     
@@ -110,11 +125,12 @@ void app_main(void)
                 gprs_client_disconnect();
                 vTaskDelay(pdMS_TO_TICKS(5000));
                 
-                ret = gprs_client_init(apn);
-                if (ret != ESP_OK) {
-                    ESP_LOGE(TAG, "Reconnection failed");
-                }
+                gprs_client_connect_gprs();
             }
         }
+    }
+    */
+    while(1) {
+        vTaskDelay(pdMS_TO_TICKS(1000));
     }
 }

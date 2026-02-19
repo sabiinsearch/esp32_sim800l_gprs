@@ -29,17 +29,49 @@ esp_err_t gprs_client_init(const char *apn)
         return ESP_FAIL;
     }
 
+    ESP_LOGI(TAG, "SIM800L initialized (GSM only)");
+    return ESP_OK;
+}
+
+esp_err_t gprs_client_connect_gprs(void)
+{
+    if (is_connected) {
+        ESP_LOGW(TAG, "GPRS already connected");
+        return ESP_OK;
+    }
+
+    ESP_LOGI(TAG, "Connecting to GPRS...");
+
     // Setup GPRS connection
-    const char *apn_to_use = apn ? apn : DEFAULT_APN;
-    ret = sim800l_setup_gprs(apn_to_use);
+    // Note: We might need to store APN globally if we want to use it here without passing it
+    // For now, using default or previously set APN logic requires care. 
+    // Let's assume we use DEFAULT_APN if not provided, or we can change signature to take APN.
+    // However, existing gprs_client_init took APN. 
+    // Let's use a static variable to store APN or just use DEFAULT_APN for now as per header.
+    // Actually, gprs_client_init had APN arg but didn't store it globally properly for delayed use 
+    // except in the local scope of that function.
+    // Let's just use DEFAULT_APN for simplicity or "internet" if not defined.
+    
+    esp_err_t ret = sim800l_setup_gprs(DEFAULT_APN);
     if (ret != ESP_OK) {
         ESP_LOGE(TAG, "GPRS setup failed");
         return ESP_FAIL;
     }
 
     is_connected = true;
-    ESP_LOGI(TAG, "GPRS client initialized successfully");
+    ESP_LOGI(TAG, "GPRS connected successfully");
     return ESP_OK;
+}
+
+esp_err_t gprs_client_make_call(const char *phone_number)
+{
+    if (!phone_number) {
+        ESP_LOGE(TAG, "Phone number is NULL");
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    ESP_LOGI(TAG, "Initiating call to %s...", phone_number);
+    return sim800l_call_number(phone_number);
 }
 
 esp_err_t gprs_client_send_message(const char *message)

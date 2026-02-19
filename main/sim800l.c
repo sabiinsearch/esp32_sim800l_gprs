@@ -50,13 +50,27 @@ esp_err_t sim800l_init(void)
         return ret;
     }
 
-    // Wait for SIM800L to boot up
-    vTaskDelay(pdMS_TO_TICKS(3000));
+    // Wait for SIM800L to boot up (increased for stability)
+    vTaskDelay(pdMS_TO_TICKS(5000));
 
-    // Test AT communication
+    // Test AT communication & Auto-baud sync
     char response[128];
-    ret = sim800l_send_at_cmd("AT", response, sizeof(response), 2000);
-    if (ret != ESP_OK) {
+    int retry = 0;
+    bool sync_success = false;
+    
+    ESP_LOGI(TAG, "Attempting to synchronize baud rate...");
+    while (retry < 10) {
+        ret = sim800l_send_at_cmd("AT", response, sizeof(response), 1000);
+        if (ret == ESP_OK) {
+            ESP_LOGI(TAG, "Baud rate synchronized!");
+            sync_success = true;
+            break;
+        }
+        vTaskDelay(pdMS_TO_TICKS(500));
+        retry++;
+    }
+
+    if (!sync_success) {
         ESP_LOGE(TAG, "Failed to communicate with SIM800L");
         return ESP_FAIL;
     }
@@ -148,11 +162,29 @@ esp_err_t sim800l_check_network(void)
 
     ESP_LOGI(TAG, "Checking network registration...");
 
-    // Check SIM card status
-    ret = sim800l_send_at_cmd("AT+CPIN?", response, sizeof(response), 3000);
-    ESP_LOGI(TAG, "SIM card status: %s", response);
-    if (ret != ESP_OK || !strstr(response, "READY")) {
-        ESP_LOGE(TAG, "SIM card not ready - check if SIM is inserted properly");
+    // Check SIM card status with retry
+    int retry = 0;
+    while (retry < 5) {
+        ret = sim800l_send_at_cmd("AT+CPIN?", response, sizeof(response), 3000);
+        ESP_LOGI(TAG, "SIM card status (Attempt %d/5): %s", retry + 1, response);
+        
+        if (ret == ESP_OK && strstr(response, "READY")) {
+            ESP_LOGI(TAG, "SIM Card Ready");
+            break;
+        }
+        
+        if (strstr(response, "SIM PIN")) {
+             ESP_LOGE(TAG, "SIM PIN required!");
+             return ESP_FAIL;
+        }
+        
+        ESP_LOGW(TAG, "SIM not ready yet, waiting...");
+        vTaskDelay(pdMS_TO_TICKS(2000));
+        retry++;
+    }
+
+    if (retry == 5) {
+        ESP_LOGE(TAG, "SIM card not ready after 5 attempts");
         return ESP_FAIL;
     }
 
@@ -331,6 +363,32 @@ esp_err_t sim800l_http_post(const char *url, const char *data, char *response, s
     sim800l_send_at_cmd("AT+HTTPTERM", resp, sizeof(resp), 2000);
 
     return ret;
+}
+
+esp_err_t sim800l_call_number(const char *phone_number)
+{
+    char cmd[64];
+    char resp[128];
+    esp_err_t ret;
+
+    if (!phone_number) {
+        ESP_LOGE(TAG, "Invalid phone number");
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    ESP_LOGI(TAG, "Calling number: %s", phone_number);
+
+    // Send ATD command to dial number
+    snprintf(cmd, sizeof(cmd), "ATD%s;", phone_number); // The semicolon is crucial for voice calls
+    ret = sim800l_send_at_cmd(cmd, resp, sizeof(resp), 10000);
+
+    if (ret == ESP_OK) {
+        ESP_LOGI(TAG, "Call initiated successfully!");
+        return ESP_OK;
+    } else {
+        ESP_LOGE(TAG, "Failed to initiate call");
+        return ESP_FAIL;
+    }
 }
 
 esp_err_t sim800l_send_sms(const char *phone_number, const char *message)
